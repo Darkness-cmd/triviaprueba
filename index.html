@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trivia Sobre Mí</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #1a001f, #4b0082);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 2rem;
+      border-radius: 20px;
+      box-shadow: 0 0 20px #8000ff;
+      width: 80%;
+      max-width: 600px;
+      text-align: center;
+    }
+    .question, .progress-text {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .options button, .btn-next, .btn-start, .btn-restart, .btn-share {
+      padding: 0.8rem;
+      border: none;
+      border-radius: 10px;
+      background: #6a0dad;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+    }
+    .options button:hover, .btn-next:hover, .btn-start:hover, .btn-restart:hover, .btn-share:hover {
+      transform: scale(1.05);
+      background: #8a2be2;
+    }
+    .options button.correct {
+      background-color: #2ecc71 !important;
+    }
+    .options button.incorrect {
+      background-color: #e74c3c !important;
+    }
+    .hidden {
+      display: none;
+    }
+    video {
+      margin-top: 1rem;
+      max-width: 40%;
+      border-radius: 12px;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #nameInput {
+      padding: 0.6rem;
+      width: 80%;
+      border-radius: 10px;
+      border: none;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+    }
+    table {
+      margin-top: 2rem;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #fff;
+      padding: 0.5rem;
+      text-align: center;
+    }
+    th {
+      background-color: #6a0dad;
+    }
+    .progress-bar {
+      width: 100%;
+      background-color: #333;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+    }
+    .progress-bar-fill {
+      height: 10px;
+      width: 0%;
+      background-color: #8000ff;
+      border-radius: 10px;
+      transition: width 0.5s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div class="container animate__animated animate__fadeIn" id="startScreen">
+    <h2>¡Bienvenido a la trivia!</h2>
+    <input type="text" id="nameInput" placeholder="Ingresa tu nombre" />
+    <button class="btn-start" onclick="startGame()">Empezar trivia</button>
+    <button class="btn-share" onclick="shareGame()">Compartir juego</button>
+  </div>
+
+  <div class="container hidden animate__animated" id="gameScreen">
+    <div class="progress-text" id="progress">Pregunta 1/10</div>
+    <div class="progress-bar"><div id="progressBarFill" class="progress-bar-fill"></div></div>
+    <div class="question animate__animated animate__fadeIn" id="question"></div>
+    <div class="options" id="options"></div>
+    <div id="videoContainer"></div>
+    <div id="correctAnswer" class="hidden"></div>
+    <button class="btn-next hidden" id="nextBtn" onclick="nextQuestion()">Siguiente Pregunta</button>
+  </div>
+
+  <div class="container hidden" id="resultScreen"></div>
+
+  <script>
+    let currentQuestion = 0;
+    let score = 0;
+    let playerName = "";
+
+    const questions = [
+      { q: "¿Cuál es mi color favorito?", options: ["Rojo", "Azul", "Morado", "Verde"], correct: 2 },
+      { q: "¿Cuál es mi genero favorito?", options: ["peleas", "romantico", "comedia", "isekai"], correct: 1 },
+      { q: "¿Cuál es mi serie favorita?", options: ["Breaking Bad", "Stranger Things", "Dark", "La Casa de Papel"], correct: 0 },
+      { q: "¿Qué instrumento me gustaría aprender?", options: ["Guitarra", "Batería", "Violín", "Piano"], correct: 0 },
+      { q: "¿Cuál es mi animal favorito?", options: ["Perro", "Gato", "Lobo", "Águila"], correct: 1 },
+      { q: "¿Cuál es mi genero musical favorito?", options: ["romantico?", "rock", "clasico", "phunk"], correct: 0 },
+      { q: "¿tengo pareja?", options: ["si", "no", "si, su nombre es...", "no feo qliao"], correct: 3 },
+      { q: "¿Cuál es mi videojuego favorito?", options: ["Minecraft", "League of Legends", "valorant", "roblox"], correct: 1 },
+      { q: "¿Cuál es mi mayor miedo?", options: ["Alturas", "Oscuridad", "Soledad y los venecos", "Arañas"], correct: 2 },
+      { q: "¿Cuál es mi sueño más grande?", options: ["Viajar por el mundo", "Ser famoso", "vida estable y feliz", "Ser millonario"], correct: 2 }
+    ];
+
+    const totalQuestions = questions.length;
+
+    function startGame() {
+      const name = document.getElementById('nameInput').value.trim();
+      if (!name) return alert("Ingresa tu nombre antes de empezar");
+      playerName = name;
+      document.getElementById('startScreen').classList.add("hidden");
+      document.getElementById('gameScreen').classList.remove("hidden");
+      loadQuestion();
+    }
+
+    function loadQuestion() {
+      const q = questions[currentQuestion];
+      document.getElementById('question').textContent = q.q;
+      document.getElementById('options').innerHTML = q.options.map((opt, i) =>
+        `<button onclick="checkAnswer(this, ${i === q.correct})">${opt}</button>`).join("");
+      document.getElementById('videoContainer').innerHTML = '';
+      document.getElementById('correctAnswer').classList.add("hidden");
+      document.getElementById('nextBtn').classList.add("hidden");
+      updateProgress();
+    }
+
+    function checkAnswer(btn, isCorrect) {
+      const buttons = document.querySelectorAll('.options button');
+      buttons.forEach(b => b.disabled = true);
+
+      let videoHTML = '';
+
+      if (isCorrect) {
+        btn.classList.add('correct');
+        score++;
+        videoHTML = '<video src="videos/video_bien_0.mp4" controls autoplay></video>';
+      } else {
+        btn.classList.add('incorrect');
+        const correctIndex = questions[currentQuestion].correct;
+        buttons[correctIndex].classList.add('correct');
+        document.getElementById('correctAnswer').innerHTML = `La respuesta correcta era: <strong>${buttons[correctIndex].textContent}</strong>`;
+        document.getElementById('correctAnswer').classList.remove("hidden");
+        videoHTML = '<video src="videos/video_mal_0.mp4" controls autoplay></video>';
+      }
+
+      document.getElementById('videoContainer').innerHTML = videoHTML;
+      document.getElementById('nextBtn').classList.remove("hidden");
+    }
+
+    function nextQuestion() {
+      currentQuestion++;
+      if (currentQuestion >= totalQuestions) {
+        showFinalResult();
+        return;
+      }
+      loadQuestion();
+    }
+
+    function updateProgress() {
+      document.getElementById('progress').textContent = `Pregunta ${currentQuestion + 1}/${totalQuestions}`;
+      const progress = currentQuestion / totalQuestions * 100;
+      document.getElementById('progressBarFill').style.width = progress + "%";
+    }
+
+    function showFinalResult() {
+      document.getElementById('gameScreen').classList.add("hidden");
+      const container = document.getElementById('resultScreen');
+      container.classList.remove("hidden");
+      container.innerHTML = `<h2>${playerName}, tu puntuación final: ${score}/10</h2>`;
+
+      let finalVideo = "";
+      if (score === 10) finalVideo = "videos/video_exelente.mp4";
+      else if (score >= 5) finalVideo = "videos/video_bueno.mp4";
+      else finalVideo = "videos/video_malo.mp4";
+
+      container.innerHTML += `<video src="${finalVideo}" controls autoplay></video>`;
+
+      let table = JSON.parse(localStorage.getItem("scores")) || [];
+      table.push({ name: playerName, score });
+      table.sort((a, b) => b.score - a.score);
+      if (table.length > 10) table = table.slice(0, 10);
+      localStorage.setItem("scores", JSON.stringify(table));
+
+      container.innerHTML += `<h3>Tabla de puntuaciones</h3><table><thead><tr><th>Nombre</th><th>Puntos</th></tr></thead><tbody>${
+        table.map(p => `<tr><td>${p.name}</td><td>${p.score}</td></tr>`).join("")
+      }</tbody></table>`;
+
+      container.innerHTML += `<button class="btn-restart" onclick="location.reload()">Volver a jugar</button>`;
+    }
+
+    function shareGame() {
+      const url = window.location.href;
+      navigator.clipboard.writeText(url)
+        .then(() => alert("¡Enlace copiado al portapapeles! Compártelo con tus amigos 🎉"))
+        .catch(err => alert("No se pudo copiar el enlace. Inténtalo manualmente."));
+    }
+  </script>
+</body>
+</html>
